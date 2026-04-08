@@ -5,7 +5,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import type { SiteModelSummary } from "@/lib/site-models";
@@ -43,7 +42,6 @@ type OverviewMapFrameProps = {
   children?: ReactNode;
 };
 
-const subscribeToMount = () => () => {};
 const FALLBACK_MAP_POSITION = { x: 0.5, y: 0.93 };
 const LOCATION_IMAGE_WIDTH = 2038;
 const LOCATION_IMAGE_HEIGHT = 1280;
@@ -566,22 +564,9 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
 }
 
 export default function ModelViewer({ models }: ModelViewerProps) {
-  const isMounted = useSyncExternalStore(
-    subscribeToMount,
-    () => true,
-    () => false
-  );
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const selectedModel =
     models.find((model) => model.slug === selectedSlug) ?? null;
-
-  if (!isMounted) {
-    return (
-      <section className="relative h-screen w-full overflow-hidden bg-black">
-        <OverviewMapFrame />
-      </section>
-    );
-  }
 
   if (selectedModel) {
     return (
