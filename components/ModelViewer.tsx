@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { Ma_Shan_Zheng } from "next/font/google";
 import {
+  type CSSProperties,
   useEffect,
   useRef,
   useState,
@@ -42,11 +44,32 @@ type OverviewMapFrameProps = {
   children?: ReactNode;
 };
 
+type MapLabelProps = {
+  model: SiteModelSummary;
+  onSelect: (slug: string) => void;
+};
+
 const FALLBACK_MAP_POSITION = { x: 0.5, y: 0.93 };
 const LOCATION_IMAGE_WIDTH = 2038;
 const LOCATION_IMAGE_HEIGHT = 1280;
 const LOCATION_IMAGE_RATIO = LOCATION_IMAGE_WIDTH / LOCATION_IMAGE_HEIGHT;
-const MARKER_VERTICAL_OFFSET = 33 / LOCATION_IMAGE_HEIGHT;
+const LABEL_DOT_OFFSET = 33;
+const mapLabelFont = Ma_Shan_Zheng({
+  weight: "400",
+  display: "swap",
+  preload: false,
+  fallback: ["STKaiti", "Kaiti SC", "KaiTi", "Songti SC", "serif"],
+});
+const MAP_LABEL_TEXT_STYLE: CSSProperties = {
+  WebkitTextStroke: "4px rgba(247, 242, 232, 0.96)",
+  paintOrder: "stroke fill",
+  textShadow:
+    "0 2px 8px rgba(255, 248, 236, 0.88), 0 8px 18px rgba(42, 28, 16, 0.16)",
+};
+const PAPER_PANEL_CLASS =
+  "border border-[#65513f]/10 bg-[linear-gradient(180deg,_rgba(255,255,252,0.95)_0%,_rgba(247,243,236,0.98)_100%)] shadow-[0_24px_56px_rgba(72,51,32,0.16)]";
+const PAPER_BUTTON_CLASS =
+  "border border-[#4d3b2d]/10 bg-[linear-gradient(180deg,_rgba(255,255,253,0.96)_0%,_rgba(247,243,236,0.98)_100%)] text-[#2f2118] shadow-[0_14px_28px_rgba(73,52,34,0.12)]";
 
 function createMistTextureCanvas() {
   const canvas = document.createElement("canvas");
@@ -124,6 +147,40 @@ function OverviewMapFrame({ children }: OverviewMapFrameProps) {
   );
 }
 
+function MapLabel({ model, onSelect }: MapLabelProps) {
+  const mapPosition = model.mapPosition ?? FALLBACK_MAP_POSITION;
+
+  return (
+    <div
+      className="absolute z-10 -translate-x-1/2 -translate-y-1/2"
+      style={{
+        left: `${mapPosition.x * 100}%`,
+        top: `${mapPosition.y * 100}%`,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => onSelect(model.slug)}
+        className="group relative border-0 bg-transparent p-0"
+        aria-label={`查看 ${model.label} 模型`}
+        title={`查看 ${model.label}`}
+      >
+        <span className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-14 w-[calc(100%+2rem)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/0 blur-2xl transition duration-200 group-hover:bg-[rgba(255,248,236,0.72)] group-focus-visible:bg-[rgba(255,248,236,0.72)]" />
+        <span
+          className="pointer-events-none absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/80 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.78),0_0_10px_rgba(255,255,255,0.62)] transition duration-200 group-hover:scale-125 group-hover:shadow-[0_0_0_1.5px_rgba(0,0,0,0.86),0_0_18px_rgba(255,255,255,0.84)] group-focus-visible:scale-125 group-focus-visible:shadow-[0_0_0_1.5px_rgba(0,0,0,0.86),0_0_18px_rgba(255,255,255,0.84)]"
+          style={{ top: `calc(50% + ${LABEL_DOT_OFFSET}px)` }}
+        />
+        <span
+          className={`${mapLabelFont.className} relative block whitespace-nowrap text-[clamp(1.7rem,2vw,2.5rem)] leading-none tracking-[0.02em] text-[#18110d] transition duration-200 group-hover:scale-[1.03] group-hover:text-[#3a2010] group-focus-visible:scale-[1.03] group-focus-visible:text-[#3a2010]`}
+          style={MAP_LABEL_TEXT_STYLE}
+        >
+          {model.label}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 function OverviewStage({ models, onSelect }: OverviewStageProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -135,33 +192,13 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black">
       <OverviewMapFrame>
-        {models.map((model) => {
-          const mapPosition = model.mapPosition ?? FALLBACK_MAP_POSITION;
-          const markerY = Math.min(mapPosition.y + MARKER_VERTICAL_OFFSET, 0.98);
-
-          return (
-            <button
-              key={model.slug}
-              type="button"
-              onClick={() => handleSelect(model.slug)}
-              className="group absolute z-10 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-110 focus-visible:scale-110"
-              style={{
-                left: `${mapPosition.x * 100}%`,
-                top: `${markerY * 100}%`,
-              }}
-              aria-label={`查看 ${model.label} 模型`}
-              title={`查看 ${model.label}`}
-            >
-              <span className="pointer-events-none absolute inset-0 rounded-full bg-white/0 transition group-hover:bg-white/12 group-focus-visible:bg-white/12" />
-              <span className="pointer-events-none absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff7b72]/45 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100" />
-              <span className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/85 bg-[#ff4d46] shadow-[0_0_0_3px_rgba(255,255,255,0.18),0_4px_12px_rgba(21,29,22,0.35)] transition duration-200 group-hover:scale-110 group-focus-visible:scale-110" />
-            </button>
-          );
-        })}
+        {models.map((model) => (
+          <MapLabel key={model.slug} model={model} onSelect={handleSelect} />
+        ))}
       </OverviewMapFrame>
 
       <div
-        className={`absolute inset-0 z-20 bg-black/12 backdrop-blur-[6px] transition ${
+        className={`absolute inset-0 z-20 bg-[rgba(250,248,244,0.16)] backdrop-blur-[6px] transition ${
           isDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setIsDrawerOpen(false)}
@@ -173,67 +210,85 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
           onClick={() => setIsDrawerOpen((value) => !value)}
           aria-expanded={isDrawerOpen}
           aria-label="打开建筑目录"
-          className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-black/46 px-3 py-1.5 text-sm font-medium text-white shadow-lg shadow-black/35 backdrop-blur-md transition hover:border-white/28 hover:bg-black/56"
+          className={`${PAPER_PANEL_CLASS} group relative inline-flex items-center gap-2 overflow-hidden rounded-[1rem] px-3.5 py-2 backdrop-blur-md transition hover:border-[#4e3b2c]/18 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)]`}
         >
-          <span>目录</span>
-          <span className="rounded-full border border-white/10 bg-white/[0.08] px-2 py-0.5 text-[11px] leading-none text-slate-100">
+          <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-[rgba(255,255,255,0.96)]" />
+          <span className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-[rgba(171,145,114,0.2)]" />
+          <span
+            className={`${mapLabelFont.className} relative text-[1.05rem] leading-none tracking-[0.04em] text-[#2f2118]`}
+          >
+            目录
+          </span>
+          <span className="rounded-full border border-[#4d3b2d]/10 bg-[rgba(255,255,255,0.92)] px-2 py-0.5 text-[10px] leading-none tracking-[0.16em] text-[#5c4a3a]">
             {models.length}
           </span>
         </button>
 
         <aside
-          className={`flex w-[min(84vw,360px)] flex-col gap-4 overflow-hidden rounded-[1.75rem] border border-white/14 bg-[linear-gradient(180deg,_rgba(8,12,16,0.84)_0%,_rgba(7,11,14,0.92)_100%)] p-5 shadow-2xl shadow-black/40 backdrop-blur-xl transition duration-200 sm:p-6 ${
+          className={`${PAPER_PANEL_CLASS} relative flex w-[min(82vw,332px)] flex-col gap-4 overflow-hidden rounded-[1.5rem] p-5 backdrop-blur-xl transition duration-200 sm:p-6 ${
             isDrawerOpen
               ? "translate-y-0 opacity-100"
               : "pointer-events-none -translate-y-2 opacity-0"
           }`}
         >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.32em] text-white/58">
-                建筑目录
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,_rgba(255,255,255,0.72)_0%,_transparent_34%),linear-gradient(180deg,_rgba(134,108,76,0.03)_0%,_rgba(255,255,255,0)_100%)]" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="relative">
+              <p className="text-xs font-medium uppercase tracking-[0.32em] text-[#7b6450]/72">
+                园林图录
               </p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
-                共 {models.length} 个建筑
+              <h2
+                className={`${mapLabelFont.className} mt-3 text-[1.6rem] leading-none tracking-[0.03em] text-[#2f2118]`}
+              >
+                循图入景
               </h2>
             </div>
 
             <button
               type="button"
               onClick={() => setIsDrawerOpen(false)}
-              className="shrink-0 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-sm text-slate-100 transition hover:border-white/22 hover:bg-white/[0.09]"
+              className="relative shrink-0 whitespace-nowrap rounded-full border border-[#4d3b2d]/10 bg-[rgba(255,255,255,0.84)] px-3 py-1.5 text-xs text-[#5a4839] transition hover:border-[#4d3b2d]/20 hover:bg-[rgba(255,255,255,0.98)]"
             >
               收起
             </button>
           </div>
 
-          <div className="grid max-h-[calc(100vh-10rem)] gap-3 overflow-y-auto pr-1">
-            {models.length > 0 ? (
-              models.map((model) => (
-                <button
-                  key={model.slug}
-                  type="button"
-                  onClick={() => handleSelect(model.slug)}
-                  className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-left transition hover:border-white/22 hover:bg-white/[0.08]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-base font-semibold text-white">
-                      {model.label}
-                    </p>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-slate-200">
-                      进入
+          <div className="relative overflow-hidden rounded-[1.1rem] border border-[#6b5645]/8 bg-[rgba(255,255,255,0.68)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+            <div className="max-h-[calc(100vh-13rem)] overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+              {models.length > 0 ? (
+                models.map((model, index) => (
+                  <button
+                    key={model.slug}
+                    type="button"
+                    onClick={() => handleSelect(model.slug)}
+                    className="group flex w-full items-start gap-3 border-t border-[#8f7150]/8 px-4 py-3 text-left transition first:border-t-0 hover:bg-[rgba(250,245,238,0.92)]"
+                  >
+                    <span className="mt-1 shrink-0 text-[10px] leading-none tracking-[0.28em] text-[#a18364]">
+                      {String(index + 1).padStart(2, "0")}
                     </span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">
-                    {model.summary}
-                  </p>
-                </button>
-              ))
-            ) : (
-              <div className="rounded-[1.4rem] border border-rose-400/30 bg-rose-500/10 px-4 py-4 text-sm leading-6 text-rose-100">
-                未在 `glbfile` 目录中发现可用的 `.glb` 文件。
-              </div>
-            )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p
+                          className={`${mapLabelFont.className} text-[1.28rem] leading-none tracking-[0.03em] text-[#241913] transition group-hover:text-[#3a2a1d]`}
+                        >
+                          {model.label}
+                        </p>
+                        <span className="mt-1 shrink-0 text-[11px] text-[#8c7156]">
+                          入景
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[12px] leading-5 text-[#5e4b3a]">
+                        {model.summary}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-4 text-sm leading-6 text-[#7c5131]">
+                  图录中暂未发现可进入的 `.glb` 建筑模型。
+                </div>
+              )}
+            </div>
           </div>
         </aside>
       </div>
@@ -529,19 +584,21 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
             type="button"
             onClick={onBack}
             aria-label="返回总览"
-            className="w-fit rounded-full border border-white/16 bg-[#203126]/58 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-md transition hover:border-amber-200/35 hover:bg-[#26382b]/76"
+            className={`${PAPER_BUTTON_CLASS} w-fit rounded-full px-3 py-1.5 text-sm font-medium backdrop-blur-md transition hover:border-[#4d3b2d]/20 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)]`}
           >
             返回
           </button>
 
-          <div className="pointer-events-none rounded-[1.5rem] border border-white/16 bg-[#1b281e]/38 px-3.5 py-3 shadow-[0_20px_60px_rgba(46,61,40,0.22)] backdrop-blur-xl sm:px-4 sm:py-3.5">
-            <p className="text-xs font-medium uppercase tracking-[0.32em] text-amber-100/70">
+          <div
+            className={`${PAPER_PANEL_CLASS} pointer-events-none rounded-[1.5rem] px-3.5 py-3 backdrop-blur-xl sm:px-4 sm:py-3.5`}
+          >
+            <p className="text-xs font-medium uppercase tracking-[0.32em] text-[#7b6450]/72">
               园林光景
             </p>
-            <h2 className="mt-2 text-[1.7rem] font-semibold tracking-tight text-white sm:text-[1.85rem]">
+            <h2 className="mt-2 text-[1.7rem] font-semibold tracking-tight text-[#2f2118] sm:text-[1.85rem]">
               {model.label}
             </h2>
-            <p className="mt-2 max-w-[16rem] text-sm leading-6 text-slate-200">
+            <p className="mt-2 max-w-[16rem] text-sm leading-6 text-[#5e4b3a]">
               {model.summary}
             </p>
           </div>
