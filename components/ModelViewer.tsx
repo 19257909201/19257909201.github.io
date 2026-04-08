@@ -36,7 +36,9 @@ type OverviewStageProps = {
 };
 
 type SingleModelStageProps = {
+  models: SiteModelSummary[];
   model: SiteModelSummary;
+  onSelect: (slug: string) => void;
   onBack: () => void;
 };
 
@@ -49,12 +51,22 @@ type MapLabelProps = {
   onSelect: (slug: string) => void;
 };
 
+type DirectoryDrawerProps = {
+  models: SiteModelSummary[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onSelect: (slug: string) => void;
+};
+
 const FALLBACK_MAP_POSITION = { x: 0.5, y: 0.93 };
 const LOCATION_IMAGE_WIDTH = 2038;
 const LOCATION_IMAGE_HEIGHT = 1280;
 const LOCATION_IMAGE_RATIO = LOCATION_IMAGE_WIDTH / LOCATION_IMAGE_HEIGHT;
 const LABEL_DOT_OFFSET = 33;
 const MODEL_INTRO_ROTATION_DURATION_MS = 4500;
+const MODEL_CAMERA_DISTANCE_MULTIPLIER = 0.92;
+const INTERPRETATION_TYPE_INTERVAL_MS = 58;
 const mapLabelFont = Ma_Shan_Zheng({
   weight: "400",
   display: "swap",
@@ -182,36 +194,29 @@ function MapLabel({ model, onSelect }: MapLabelProps) {
   );
 }
 
-function OverviewStage({ models, onSelect }: OverviewStageProps) {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-  const handleSelect = (slug: string) => {
-    setIsDrawerOpen(false);
-    onSelect(slug);
-  };
-
+function DirectoryDrawer({
+  models,
+  isOpen,
+  onToggle,
+  onClose,
+  onSelect,
+}: DirectoryDrawerProps) {
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-black">
-      <OverviewMapFrame>
-        {models.map((model) => (
-          <MapLabel key={model.slug} model={model} onSelect={handleSelect} />
-        ))}
-      </OverviewMapFrame>
-
+    <>
       <div
         className={`absolute inset-0 z-20 bg-[rgba(250,248,244,0.16)] backdrop-blur-[6px] transition ${
-          isDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
-        onClick={() => setIsDrawerOpen(false)}
+        onClick={onClose}
       />
 
-      <div className="absolute right-4 top-4 z-30 flex max-h-[calc(100vh-2rem)] flex-col items-end gap-3 sm:right-6 sm:top-6 sm:max-h-[calc(100vh-3rem)]">
+      <div className="pointer-events-none absolute right-4 top-4 z-30 flex max-h-[calc(100vh-2rem)] flex-col items-end gap-3 sm:right-6 sm:top-6 sm:max-h-[calc(100vh-3rem)]">
         <button
           type="button"
-          onClick={() => setIsDrawerOpen((value) => !value)}
-          aria-expanded={isDrawerOpen}
+          onClick={onToggle}
+          aria-expanded={isOpen}
           aria-label="打开建筑目录"
-          className={`${PAPER_PANEL_CLASS} group relative inline-flex items-center gap-2 overflow-hidden rounded-[1rem] px-3.5 py-2 backdrop-blur-md transition hover:border-[#4e3b2c]/18 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)]`}
+          className={`${PAPER_PANEL_CLASS} pointer-events-auto group relative inline-flex items-center gap-2 overflow-hidden rounded-[1rem] px-3.5 py-2 backdrop-blur-md transition hover:border-[#4e3b2c]/18 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)]`}
         >
           <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-[rgba(255,255,255,0.96)]" />
           <span className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-[rgba(171,145,114,0.2)]" />
@@ -226,8 +231,8 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
         </button>
 
         <aside
-          className={`${PAPER_PANEL_CLASS} relative flex w-[min(82vw,332px)] flex-col gap-4 overflow-hidden rounded-[1.5rem] p-5 backdrop-blur-xl transition duration-200 sm:p-6 ${
-            isDrawerOpen
+          className={`${PAPER_PANEL_CLASS} pointer-events-auto relative flex w-[min(82vw,332px)] flex-col gap-4 overflow-hidden rounded-[1.5rem] p-5 backdrop-blur-xl transition duration-200 sm:p-6 ${
+            isOpen
               ? "translate-y-0 opacity-100"
               : "pointer-events-none -translate-y-2 opacity-0"
           }`}
@@ -247,7 +252,7 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
 
             <button
               type="button"
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={onClose}
               className="relative shrink-0 whitespace-nowrap rounded-full border border-[#4d3b2d]/10 bg-[rgba(255,255,255,0.84)] px-3 py-1.5 text-xs text-[#5a4839] transition hover:border-[#4d3b2d]/20 hover:bg-[rgba(255,255,255,0.98)]"
             >
               收起
@@ -261,7 +266,7 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
                   <button
                     key={model.slug}
                     type="button"
-                    onClick={() => handleSelect(model.slug)}
+                    onClick={() => onSelect(model.slug)}
                     className="group flex w-full items-start gap-3 border-t border-[#8f7150]/8 px-4 py-3 text-left transition first:border-t-0 hover:bg-[rgba(250,245,238,0.92)]"
                   >
                     <span className="mt-1 shrink-0 text-[10px] leading-none tracking-[0.28em] text-[#a18364]">
@@ -293,16 +298,100 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
           </div>
         </aside>
       </div>
+    </>
+  );
+}
+
+function OverviewStage({ models, onSelect }: OverviewStageProps) {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleSelect = (slug: string) => {
+    setIsDrawerOpen(false);
+    onSelect(slug);
+  };
+
+  return (
+    <section className="relative h-screen w-full overflow-hidden bg-black">
+      <OverviewMapFrame>
+        {models.map((model) => (
+          <MapLabel key={model.slug} model={model} onSelect={handleSelect} />
+        ))}
+      </OverviewMapFrame>
+
+      <DirectoryDrawer
+        models={models}
+        isOpen={isDrawerOpen}
+        onToggle={() => setIsDrawerOpen((value) => !value)}
+        onClose={() => setIsDrawerOpen(false)}
+        onSelect={handleSelect}
+      />
     </section>
   );
 }
 
-function SingleModelStage({ model, onBack }: SingleModelStageProps) {
+function SingleModelStage({
+  models,
+  model,
+  onSelect,
+  onBack,
+}: SingleModelStageProps) {
+  const interpretationText = model.interpretation.replace(/\n\s*\n+/g, "\n");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [viewerState, setViewerState] = useState<ViewerState>({
     kind: "loading",
     message: `正在加载 ${model.label}…`,
   });
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isInterpretationReady, setIsInterpretationReady] = useState(false);
+  const [isInterpretationOpen, setIsInterpretationOpen] = useState(true);
+  const [typedInterpretation, setTypedInterpretation] = useState("");
+
+  useEffect(() => {
+    setIsDrawerOpen(false);
+    setIsInterpretationReady(false);
+    setIsInterpretationOpen(true);
+    setTypedInterpretation("");
+  }, [model.slug]);
+
+  const handleDrawerSelect = (slug: string) => {
+    setIsDrawerOpen(false);
+    onSelect(slug);
+  };
+
+  useEffect(() => {
+    if (!isInterpretationReady) {
+      return;
+    }
+
+    if (!isInterpretationOpen) {
+      return;
+    }
+
+    if (typedInterpretation.length >= interpretationText.length) {
+      return;
+    }
+
+    const nextCharacter = interpretationText[typedInterpretation.length];
+    const delay =
+      nextCharacter === "\n"
+        ? INTERPRETATION_TYPE_INTERVAL_MS * 3
+        : /[，。；：、“”]/.test(nextCharacter)
+          ? INTERPRETATION_TYPE_INTERVAL_MS * 2
+          : INTERPRETATION_TYPE_INTERVAL_MS;
+
+    const timer = window.setTimeout(() => {
+      setTypedInterpretation(
+        interpretationText.slice(0, typedInterpretation.length + 1)
+      );
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    isInterpretationOpen,
+    isInterpretationReady,
+    interpretationText,
+    typedInterpretation,
+  ]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -327,6 +416,7 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
       kind: "loading",
       message: `正在加载 ${model.label}…`,
     });
+    setIsInterpretationReady(false);
 
     const syncRendererSize = () => {
       if (!renderer || !camera) {
@@ -466,19 +556,21 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
             const fitHeightDistance = radius / Math.tan(halfFov);
             const fitWidthDistance =
               fitHeightDistance / Math.max(camera.aspect, 0.1);
-            const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.18;
+            const distance =
+              Math.max(fitHeightDistance, fitWidthDistance) *
+              MODEL_CAMERA_DISTANCE_MULTIPLIER;
 
             camera.near = Math.max(distance / 120, 0.1);
             camera.far = Math.max(distance * 35, 100);
             camera.position.set(
-              radius * 0.38,
-              Math.max(size.y * 0.16, radius * 0.28),
+              radius * 0.28,
+              Math.max(size.y * 0.1, radius * 0.18),
               distance
             );
             camera.updateProjectionMatrix();
 
             controls.target.set(0, 0, 0);
-            controls.minDistance = Math.max(radius * 0.85, 1.2);
+            controls.minDistance = Math.max(radius * 0.74, 1.1);
             controls.maxDistance = Math.max(radius * 5.5, 14);
             controls.enabled = false;
             controls.update();
@@ -544,6 +636,7 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
               introRotationActive = false;
               controls.enabled = true;
               controls.update();
+              setIsInterpretationReady(true);
 
               setViewerState({
                 kind: "ready",
@@ -612,11 +705,19 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
         className="absolute inset-0 cursor-grab active:cursor-grabbing"
       />
 
+      <DirectoryDrawer
+        models={models}
+        isOpen={isDrawerOpen}
+        onToggle={() => setIsDrawerOpen((value) => !value)}
+        onClose={() => setIsDrawerOpen(false)}
+        onSelect={handleDrawerSelect}
+      />
+
       <button
         type="button"
         onClick={onBack}
         aria-label="返回总览"
-        className={`${PAPER_BUTTON_CLASS} absolute left-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full backdrop-blur-md transition hover:border-[#4d3b2d]/20 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)] sm:left-6 sm:h-12 sm:w-12`}
+        className={`${PAPER_BUTTON_CLASS} absolute bottom-4 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-md transition hover:border-[#4d3b2d]/20 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)] sm:bottom-6 sm:left-6 sm:h-12 sm:w-12`}
       >
         <svg
           viewBox="0 0 24 24"
@@ -632,21 +733,97 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
         </svg>
       </button>
 
-      <div className="absolute left-4 right-4 top-4 flex flex-col gap-4 sm:left-6 sm:right-6 sm:top-6">
-        <div className="sm:max-w-[18rem]">
+      <div className="absolute left-4 top-4 z-10 flex w-[min(19.75rem,calc(100vw-2rem))] flex-col gap-4 sm:left-6 sm:top-6 sm:w-[19.75rem]">
+        <div className="w-full">
           <div
-            className={`${PAPER_PANEL_CLASS} pointer-events-none rounded-[1.5rem] px-3.5 py-4 backdrop-blur-xl sm:px-4 sm:py-4`}
+            className={`${PAPER_PANEL_CLASS} pointer-events-none rounded-[1.5rem] pl-4 pr-6 py-[1.25rem] backdrop-blur-xl sm:pl-[1.15rem] sm:pr-[1.65rem] sm:py-[1.3rem]`}
           >
             <p className="text-xs font-medium uppercase tracking-[0.32em] text-[#7b6450]/72">
               园林光景
             </p>
-            <h2 className="mt-2 text-[1.7rem] font-semibold tracking-tight text-[#2f2118] sm:text-[1.85rem]">
-              {model.label}
+            <h2
+              className={`${mapLabelFont.className} mt-3 flex h-[2.35rem] max-w-[15.2rem] items-center leading-none tracking-[0.02em] text-[#2f2118] sm:h-[2.55rem] sm:max-w-[15.6rem]`}
+            >
+              <span className="inline-block origin-left scale-[1.24] text-[1.8rem] sm:text-[1.98rem]">
+                {model.label}
+              </span>
             </h2>
-            <p className="mt-2 max-w-[16rem] text-sm leading-6 text-[#5e4b3a]">
+            <p className="mt-3.5 max-w-[15rem] text-sm leading-[1.78] text-[#5e4b3a] sm:max-w-[15.4rem]">
               {model.summary}
             </p>
           </div>
+        </div>
+
+        <div className="w-full">
+          {isInterpretationReady && isInterpretationOpen ? (
+            <div className="relative w-full">
+              <button
+                type="button"
+                onClick={() => setIsInterpretationOpen(false)}
+                aria-label="收起解说"
+                className={`${PAPER_BUTTON_CLASS} absolute right-3 -top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-md transition hover:border-[#4d3b2d]/20 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)] sm:left-full sm:right-auto sm:top-3 sm:ml-3`}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  className="h-[18px] w-[18px] text-[#5a4839]"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M15 6l-6 6 6 6" />
+                </svg>
+              </button>
+
+              <aside
+                className={`${PAPER_PANEL_CLASS} relative w-full overflow-hidden rounded-[1.5rem] px-4 py-4 backdrop-blur-xl sm:px-5 sm:py-5`}
+              >
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,_rgba(255,255,255,0.7)_0%,_transparent_34%),linear-gradient(180deg,_rgba(134,108,76,0.03)_0%,_rgba(255,255,255,0)_100%)]" />
+                <div className="relative min-w-0">
+                  <h3
+                    className={`${mapLabelFont.className} text-[1.52rem] leading-none tracking-[0.03em] text-[#2f2118]`}
+                  >
+                    关于建筑
+                  </h3>
+                </div>
+
+                <div className="relative mt-4 max-h-[min(42vh,24rem)] overflow-y-auto pr-1 [scrollbar-gutter:stable] sm:max-h-[calc(100vh-22rem)]">
+                  <p className="whitespace-pre-line text-[14px] leading-8 text-[#5e4b3a] sm:text-[15px]">
+                    {typedInterpretation}
+                    {typedInterpretation.length < interpretationText.length ? (
+                      <span className="ml-0.5 inline-block h-4 w-px animate-pulse bg-[#8c7156] align-[-2px]" />
+                    ) : null}
+                  </p>
+                </div>
+              </aside>
+            </div>
+          ) : null}
+
+          {isInterpretationReady ? (
+            <button
+              type="button"
+              onClick={() => setIsInterpretationOpen((value) => !value)}
+              aria-label={isInterpretationOpen ? "收起解说" : "展开解说"}
+              className={`${PAPER_BUTTON_CLASS} relative flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-md transition hover:border-[#4d3b2d]/20 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)] ${
+                isInterpretationOpen ? "hidden" : ""
+              }`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="h-[18px] w-[18px] text-[#5a4839]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -673,7 +850,9 @@ export default function ModelViewer({ models }: ModelViewerProps) {
   if (selectedModel) {
     return (
       <SingleModelStage
+        models={models}
         model={selectedModel}
+        onSelect={setSelectedSlug}
         onBack={() => setSelectedSlug(null)}
       />
     );
