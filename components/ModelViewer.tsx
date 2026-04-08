@@ -54,6 +54,7 @@ const LOCATION_IMAGE_WIDTH = 2038;
 const LOCATION_IMAGE_HEIGHT = 1280;
 const LOCATION_IMAGE_RATIO = LOCATION_IMAGE_WIDTH / LOCATION_IMAGE_HEIGHT;
 const LABEL_DOT_OFFSET = 33;
+const MODEL_INTRO_ROTATION_DURATION_MS = 4500;
 const mapLabelFont = Ma_Shan_Zheng({
   weight: "400",
   display: "swap",
@@ -319,6 +320,8 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
     let baseMistSprites: Object3D[] = [];
     let camera: PerspectiveCamera | null = null;
     let controls: OrbitControls | null = null;
+    let introRotationStartTime = 0;
+    let introRotationActive = false;
 
     setViewerState({
       kind: "loading",
@@ -434,6 +437,7 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
             const bottomY = box.min.y - center.y;
 
             loadedScene.position.set(-center.x, -center.y, -center.z);
+            loadedScene.rotation.y = Math.PI;
 
             const mistCanvas = createMistTextureCanvas();
 
@@ -476,11 +480,14 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
             controls.target.set(0, 0, 0);
             controls.minDistance = Math.max(radius * 0.85, 1.2);
             controls.maxDistance = Math.max(radius * 5.5, 14);
+            controls.enabled = false;
             controls.update();
+            introRotationStartTime = 0;
+            introRotationActive = true;
 
             setViewerState({
               kind: "ready",
-              message: `正在查看 ${model.label}。拖拽可旋转，滚轮可缩放。`,
+              message: `正在展开 ${model.label}。拖拽可旋转，滚轮可缩放。`,
             });
           },
           (event: ProgressEvent<EventTarget>) => {
@@ -518,8 +525,35 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
           }
         );
 
-        renderer.setAnimationLoop(() => {
-          controls?.update();
+        renderer.setAnimationLoop((time) => {
+          if (introRotationActive && loadedScene && controls) {
+            if (introRotationStartTime === 0) {
+              introRotationStartTime = time;
+            }
+
+            const progress = Math.min(
+              1,
+              (time - introRotationStartTime) / MODEL_INTRO_ROTATION_DURATION_MS
+            );
+            const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+            loadedScene.rotation.y = Math.PI * (1 - easedProgress);
+
+            if (progress >= 1) {
+              loadedScene.rotation.y = 0;
+              introRotationActive = false;
+              controls.enabled = true;
+              controls.update();
+
+              setViewerState({
+                kind: "ready",
+                message: `正在查看 ${model.label}。拖拽可旋转，滚轮可缩放。`,
+              });
+            }
+          } else {
+            controls?.update();
+          }
+
           renderer?.render(scene, camera!);
         });
       } catch {
