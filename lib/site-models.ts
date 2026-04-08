@@ -16,6 +16,7 @@ type SiteModelRecord = {
   slug: string;
   label: string;
   summary: string;
+  verse: string;
   mapPosition: MapPosition;
   mapSize: MapSize;
 };
@@ -37,6 +38,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "jianshanlou",
     label: "见山楼",
     summary: "位于主水面北侧的核心楼阁。",
+    verse: "一楼收远岫，半窗贮春云。",
     mapPosition: { x: 0.478, y: 0.333 },
     mapSize: { width: 0.068, height: 0.06 },
   },
@@ -44,6 +46,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "xuexiangyunweiting",
     label: "雪香云蔚亭",
     summary: "北岸岛屿上的亭景节点。",
+    verse: "雪意浮疏影，香风过小亭。",
     mapPosition: { x: 0.6068, y: 0.3984 },
     mapSize: { width: 0.09, height: 0.06 },
   },
@@ -51,6 +54,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "hefengsimianting",
     label: "荷风四面亭",
     summary: "连接主水面的临水亭。",
+    verse: "四面荷风起，波心一亭轻。",
     mapPosition: { x: 0.5423, y: 0.5004 },
     mapSize: { width: 0.072, height: 0.042 },
   },
@@ -58,6 +62,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "xiangzhou",
     label: "香洲",
     summary: "水心区域的重要建筑节点。",
+    verse: "水国藏芳渚，轻烟抱晚汀。",
     mapPosition: { x: 0.4898, y: 0.6266 },
     mapSize: { width: 0.052, height: 0.04 },
   },
@@ -65,6 +70,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "xiaofeihong",
     label: "小飞虹",
     summary: "连接水岸与岛屿的跨水桥景。",
+    verse: "一痕飞虹落，倒影卧清波。",
     mapPosition: { x: 0.5515, y: 0.7352 },
     mapSize: { width: 0.05, height: 0.036 },
   },
@@ -72,6 +78,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "yuanxiangtang",
     label: "远香堂",
     summary: "东南侧的主体厅堂建筑。",
+    verse: "远香来水际，清气满闲堂。",
     mapPosition: { x: 0.6624, y: 0.6261 },
     mapSize: { width: 0.064, height: 0.042 },
   },
@@ -79,6 +86,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "yulantang",
     label: "玉兰堂",
     summary: "西南侧院落中的厅堂空间。",
+    verse: "玉兰开静院，月白满前阶。",
     mapPosition: { x: 0.4058, y: 0.7141 },
     mapSize: { width: 0.064, height: 0.042 },
   },
@@ -86,6 +94,7 @@ const SITE_MODEL_CATALOG: readonly SiteModelRecord[] = [
     slug: "linglongguan",
     label: "玲珑馆",
     summary: "东侧园林带中的小馆建筑。",
+    verse: "窗含千树影，馆纳一庭风。",
     mapPosition: { x: 0.807, y: 0.7078 },
     mapSize: { width: 0.056, height: 0.05 },
   },
@@ -146,6 +155,7 @@ export async function getAvailableSiteModels(): Promise<SiteModelSummary[]> {
     slug,
     label: toFallbackLabel(slug),
     summary: "已发现模型文件，但尚未配置园区里的精确位置。",
+    verse: "尚待题咏，留与后来人。",
     mapPosition: toFallbackPosition(index, unknownSlugs.length),
     mapSize: DEFAULT_MAP_SIZE,
     fileName: toFileName(slug),
@@ -175,6 +185,7 @@ export async function getSiteModelAsset(
     slug,
     label: record?.label ?? toFallbackLabel(slug),
     summary: record?.summary ?? "根据文件名识别出的单体模型。",
+    verse: record?.verse ?? "尚待题咏，留与后来人。",
     mapPosition: record?.mapPosition ?? { x: 0.5, y: 0.93 },
     mapSize: record?.mapSize ?? DEFAULT_MAP_SIZE,
     fileName: toFileName(slug),

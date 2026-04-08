@@ -278,7 +278,7 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
                         </span>
                       </div>
                       <p className="mt-1 text-[12px] leading-5 text-[#5e4b3a]">
-                        {model.summary}
+                        {model.verse}
                       </p>
                     </div>
                   </button>
