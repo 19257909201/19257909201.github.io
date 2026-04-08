@@ -52,3 +52,4 @@ CLAUDE.md
 debug_location_grid*.png
 *.Zone.Identifier
 *:Zone.Identifier
+/glbfile/example.jpg

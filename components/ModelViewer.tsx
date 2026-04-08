@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import type { SiteModelSummary } from "@/lib/site-models";
 import type {
   Material,
@@ -31,6 +37,10 @@ type OverviewStageProps = {
 type SingleModelStageProps = {
   model: SiteModelSummary;
   onBack: () => void;
+};
+
+type OverviewMapFrameProps = {
+  children?: ReactNode;
 };
 
 const subscribeToMount = () => () => {};
@@ -87,6 +97,35 @@ function disposeObject(object: Object3D) {
   });
 }
 
+function OverviewMapFrame({ children }: OverviewMapFrameProps) {
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-black">
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: `max(100vw, calc(100vh * ${LOCATION_IMAGE_RATIO}))`,
+          height: `max(100vh, calc(100vw / ${LOCATION_IMAGE_RATIO}))`,
+          transform: "translate(-50%, -50%)",
+        }}
+      >
+        <div className="relative h-full w-full">
+          <Image
+            src="/api/layout-image"
+            alt="园林建筑位置总览"
+            fill
+            priority
+            unoptimized
+            sizes="100vw"
+            className="select-none object-cover"
+          />
+
+          {children ? <div className="absolute inset-0 z-10">{children}</div> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OverviewStage({ models, onSelect }: OverviewStageProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -96,109 +135,64 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
   };
 
   return (
-    <section className="relative min-h-screen w-full px-4 py-4 sm:px-6 sm:py-6">
-      <div className="mx-auto mb-4 flex max-w-[1680px] items-end justify-between gap-4 px-1">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.32em] text-emerald-950/65">
-            园区总览
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-            园林建筑模型导览
-          </h1>
-        </div>
-      </div>
+    <section className="relative h-screen w-full overflow-hidden bg-black">
+      <OverviewMapFrame>
+        {models.map((model) => {
+          const mapPosition = model.mapPosition ?? FALLBACK_MAP_POSITION;
+          const markerY = Math.min(mapPosition.y + MARKER_VERTICAL_OFFSET, 0.98);
 
-      <div className="mx-auto relative min-h-[calc(100vh-7rem)] max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/18 shadow-2xl shadow-black/25">
-        <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
-          <div
-            className={`relative overflow-hidden rounded-[1.7rem] transition-transform duration-300 ease-out ${
-              isDrawerOpen
-                ? "-translate-x-12 md:-translate-x-24 xl:-translate-x-36"
-                : "translate-x-0"
-            }`}
-            style={{
-              width: `min(100%, calc((100vh - 10rem) * ${LOCATION_IMAGE_RATIO}))`,
-            }}
-          >
-            <Image
-              src="/api/layout-image"
-              alt="园林建筑位置总览"
-              width={LOCATION_IMAGE_WIDTH}
-              height={LOCATION_IMAGE_HEIGHT}
-              priority
-              unoptimized
-              className="block h-auto w-full select-none"
-            />
+          return (
+            <button
+              key={model.slug}
+              type="button"
+              onClick={() => handleSelect(model.slug)}
+              className="group absolute z-10 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-110 focus-visible:scale-110"
+              style={{
+                left: `${mapPosition.x * 100}%`,
+                top: `${markerY * 100}%`,
+              }}
+              aria-label={`查看 ${model.label} 模型`}
+              title={`查看 ${model.label}`}
+            >
+              <span className="pointer-events-none absolute inset-0 rounded-full bg-white/0 transition group-hover:bg-white/12 group-focus-visible:bg-white/12" />
+              <span className="pointer-events-none absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff7b72]/45 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100" />
+              <span className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/85 bg-[#ff4d46] shadow-[0_0_0_3px_rgba(255,255,255,0.18),0_4px_12px_rgba(21,29,22,0.35)] transition duration-200 group-hover:scale-110 group-focus-visible:scale-110" />
+            </button>
+          );
+        })}
+      </OverviewMapFrame>
 
-            <div className="absolute inset-0 z-10">
-              {models.map((model) => {
-                const mapPosition = model.mapPosition ?? FALLBACK_MAP_POSITION;
-                const markerY = Math.min(
-                  mapPosition.y + MARKER_VERTICAL_OFFSET,
-                  0.98
-                );
+      <div
+        className={`absolute inset-0 z-20 bg-black/12 backdrop-blur-[6px] transition ${
+          isDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setIsDrawerOpen(false)}
+      />
 
-                return (
-                  <button
-                    key={model.slug}
-                    type="button"
-                    onClick={() => handleSelect(model.slug)}
-                    className={`group absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-0 bg-transparent p-0 transition-transform duration-200 ${
-                      isDrawerOpen ? "h-10 w-10" : "h-8 w-8"
-                    }`}
-                    style={{
-                      left: `${mapPosition.x * 100}%`,
-                      top: `${markerY * 100}%`,
-                    }}
-                    aria-label={`查看 ${model.label} 模型`}
-                    title={`查看 ${model.label}`}
-                  >
-                    <span className="pointer-events-none absolute inset-0 rounded-full bg-white/0 transition group-hover:bg-white/10 group-focus-visible:bg-white/10" />
-                    <span
-                      className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff7b72]/45 transition ${
-                        isDrawerOpen
-                          ? "h-6 w-6 opacity-100"
-                          : "h-4 w-4 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
-                      }`}
-                    />
-                    <span className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/85 bg-[#ff4d46] shadow-[0_0_0_3px_rgba(255,255,255,0.18),0_4px_12px_rgba(21,29,22,0.35)] transition duration-200 group-hover:scale-110 group-focus-visible:scale-110" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
+      <div className="absolute right-4 top-4 z-30 flex max-h-[calc(100vh-2rem)] flex-col items-end gap-3 sm:right-6 sm:top-6 sm:max-h-[calc(100vh-3rem)]">
         <button
           type="button"
           onClick={() => setIsDrawerOpen((value) => !value)}
           aria-expanded={isDrawerOpen}
           aria-label="打开建筑目录"
-          className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-slate-950/72 px-3 py-1.5 text-sm font-medium text-white shadow-lg shadow-black/25 transition hover:border-emerald-200/35 hover:bg-slate-900/82 sm:right-6 sm:top-6"
+          className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-black/46 px-3 py-1.5 text-sm font-medium text-white shadow-lg shadow-black/35 backdrop-blur-md transition hover:border-white/28 hover:bg-black/56"
         >
           <span>目录</span>
-          <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[11px] leading-none text-slate-100">
+          <span className="rounded-full border border-white/10 bg-white/[0.08] px-2 py-0.5 text-[11px] leading-none text-slate-100">
             {models.length}
           </span>
         </button>
 
-        <div
-          className={`absolute inset-0 transition ${
-            isDrawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-          onClick={() => setIsDrawerOpen(false)}
-        />
-
         <aside
-          className={`absolute inset-y-3 right-3 z-10 flex w-[min(92vw,380px)] flex-col gap-4 rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,_rgba(7,18,17,0.92)_0%,_rgba(6,14,17,0.96)_100%)] p-5 shadow-2xl shadow-black/35 transition duration-300 sm:inset-y-4 sm:right-4 sm:p-6 ${
+          className={`flex w-[min(84vw,360px)] flex-col gap-4 overflow-hidden rounded-[1.75rem] border border-white/14 bg-[linear-gradient(180deg,_rgba(8,12,16,0.84)_0%,_rgba(7,11,14,0.92)_100%)] p-5 shadow-2xl shadow-black/40 backdrop-blur-xl transition duration-200 sm:p-6 ${
             isDrawerOpen
-              ? "translate-x-0 opacity-100"
-              : "pointer-events-none translate-x-[calc(100%+1rem)] opacity-0"
+              ? "translate-y-0 opacity-100"
+              : "pointer-events-none -translate-y-2 opacity-0"
           }`}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.32em] text-emerald-100/75">
+              <p className="text-xs font-medium uppercase tracking-[0.32em] text-white/58">
                 建筑目录
               </p>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
@@ -209,20 +203,20 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
             <button
               type="button"
               onClick={() => setIsDrawerOpen(false)}
-              className="shrink-0 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-slate-100 transition hover:border-emerald-200/35 hover:bg-white/[0.08]"
+              className="shrink-0 whitespace-nowrap rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-sm text-slate-100 transition hover:border-white/22 hover:bg-white/[0.09]"
             >
               收起
             </button>
           </div>
 
-          <div className="grid gap-3 overflow-y-auto pr-1">
+          <div className="grid max-h-[calc(100vh-10rem)] gap-3 overflow-y-auto pr-1">
             {models.length > 0 ? (
               models.map((model) => (
                 <button
                   key={model.slug}
                   type="button"
                   onClick={() => handleSelect(model.slug)}
-                  className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-left transition hover:border-emerald-200/35 hover:bg-emerald-100/[0.08]"
+                  className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-left transition hover:border-white/22 hover:bg-white/[0.08]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-base font-semibold text-white">
@@ -238,12 +232,11 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
                 </button>
               ))
             ) : (
-              <div className="rounded-[1.5rem] border border-rose-400/30 bg-rose-500/10 px-4 py-4 text-sm leading-6 text-rose-100">
+              <div className="rounded-[1.4rem] border border-rose-400/30 bg-rose-500/10 px-4 py-4 text-sm leading-6 text-rose-100">
                 未在 `glbfile` 目录中发现可用的 `.glb` 文件。
               </div>
             )}
           </div>
-
         </aside>
       </div>
     </section>
@@ -584,22 +577,8 @@ export default function ModelViewer({ models }: ModelViewerProps) {
 
   if (!isMounted) {
     return (
-      <section className="relative min-h-screen w-full px-4 py-4 sm:px-6 sm:py-6">
-        <div className="mx-auto mb-4 flex max-w-[1680px] items-end justify-between gap-4 px-1">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.32em] text-sky-200/75">
-              园区总览
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              园林建筑模型导览
-            </h1>
-          </div>
-        </div>
-
-        <div className="mx-auto relative min-h-[calc(100vh-7rem)] max-w-[1680px] overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/35 shadow-2xl shadow-black/30 backdrop-blur-xl">
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(10,18,30,0.75)_0%,_rgba(6,12,20,0.88)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_28%,_rgba(125,211,252,0.12)_0%,_transparent_22%),radial-gradient(circle_at_72%_35%,_rgba(167,243,208,0.1)_0%,_transparent_22%)]" />
-        </div>
+      <section className="relative h-screen w-full overflow-hidden bg-black">
+        <OverviewMapFrame />
       </section>
     );
   }
