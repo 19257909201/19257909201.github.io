@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Ma_Shan_Zheng } from "next/font/google";
 import {
   type CSSProperties,
+  startTransition,
   useEffect,
   useRef,
   useState,
@@ -59,6 +60,15 @@ type DirectoryDrawerProps = {
   onSelect: (slug: string) => void;
 };
 
+type InkTransitionPhase = "covering" | "revealing" | "hidden";
+type InkTransitionKind = "initial" | "switch";
+
+type InkWashOverlayProps = {
+  phase: InkTransitionPhase;
+  label: string;
+  isMapFontReady: boolean;
+};
+
 const FALLBACK_MAP_POSITION = { x: 0.5, y: 0.93 };
 const LOCATION_IMAGE_WIDTH = 2038;
 const LOCATION_IMAGE_HEIGHT = 1280;
@@ -67,6 +77,9 @@ const LABEL_DOT_OFFSET = 33;
 const MODEL_INTRO_ROTATION_DURATION_MS = 4500;
 const MODEL_CAMERA_DISTANCE_MULTIPLIER = 0.86;
 const INTERPRETATION_TYPE_INTERVAL_MS = 58;
+const INK_TRANSITION_INITIAL_HOLD_MS = 320;
+const INK_TRANSITION_COVER_MS = 720;
+const INK_TRANSITION_REVEAL_MS = 1160;
 const mapLabelFont = Ma_Shan_Zheng({
   weight: "400",
   display: "swap",
@@ -131,9 +144,102 @@ function disposeObject(object: Object3D) {
   });
 }
 
+function InkWashOverlay({
+  phase,
+  label,
+  isMapFontReady,
+}: InkWashOverlayProps) {
+  const isHidden = phase === "hidden";
+  const isRevealing = phase === "revealing";
+  const isCovering = phase === "covering";
+
+  return (
+    <div
+      className={`absolute inset-0 z-[80] overflow-hidden transition-[opacity,transform,filter] duration-[1160ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isHidden
+          ? "pointer-events-none opacity-0 scale-[1.035] blur-[2px]"
+          : isRevealing
+            ? "pointer-events-auto opacity-0 scale-[1.015] blur-[1px]"
+            : "pointer-events-auto opacity-100 scale-100 blur-0"
+      }`}
+      aria-hidden="true"
+    >
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(249,245,237,0.98)_0%,_rgba(241,233,220,0.98)_55%,_rgba(232,220,203,0.98)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_16%,_rgba(255,255,255,0.55)_0%,_transparent_30%),radial-gradient(circle_at_76%_20%,_rgba(255,248,236,0.34)_0%,_transparent_24%),radial-gradient(circle_at_50%_82%,_rgba(148,116,85,0.12)_0%,_transparent_26%)]" />
+      <div
+        className={`absolute -left-[16%] top-[2%] h-[56%] w-[52%] rounded-full bg-[radial-gradient(circle,_rgba(37,26,18,0.82)_0%,_rgba(67,47,31,0.54)_34%,_rgba(98,72,48,0.18)_58%,_transparent_76%)] blur-[52px] transition-[opacity,transform,filter] duration-[1320ms] ease-out ${
+          isHidden
+            ? "scale-[0.84] opacity-0"
+            : isRevealing
+              ? "translate-x-[-4%] scale-[1.34] opacity-0"
+              : isCovering
+                ? "scale-100 opacity-100"
+                : "scale-100 opacity-100"
+        }`}
+      />
+      <div
+        className={`absolute right-[-10%] top-[12%] h-[40%] w-[36%] rounded-full bg-[radial-gradient(circle,_rgba(43,30,20,0.66)_0%,_rgba(84,61,41,0.34)_42%,_rgba(124,97,72,0.1)_64%,_transparent_80%)] blur-[44px] transition-[opacity,transform] duration-[1180ms] ease-out ${
+          isHidden
+            ? "translate-y-[-4%] scale-[0.88] opacity-0"
+            : isRevealing
+              ? "translate-y-[-5%] scale-[1.28] opacity-0"
+              : "scale-100 opacity-100"
+        }`}
+      />
+      <div
+        className={`absolute left-[18%] top-[48%] h-[34%] w-[28%] rounded-full bg-[radial-gradient(circle,_rgba(31,22,15,0.58)_0%,_rgba(70,52,35,0.28)_42%,_rgba(120,94,68,0.08)_68%,_transparent_80%)] blur-[34px] transition-[opacity,transform] duration-[1200ms] ease-out ${
+          isHidden
+            ? "translate-y-[3%] scale-[0.9] opacity-0"
+            : isRevealing
+              ? "translate-y-[8%] scale-[1.3] opacity-0"
+              : "scale-100 opacity-100"
+        }`}
+      />
+      <div
+        className={`absolute right-[8%] bottom-[-6%] h-[42%] w-[48%] rounded-full bg-[radial-gradient(circle,_rgba(54,39,27,0.42)_0%,_rgba(96,73,51,0.2)_44%,_rgba(138,108,78,0.06)_66%,_transparent_82%)] blur-[48px] transition-[opacity,transform] duration-[1320ms] ease-out ${
+          isHidden
+            ? "translate-x-[4%] scale-[0.88] opacity-0"
+            : isRevealing
+              ? "translate-x-[6%] scale-[1.22] opacity-0"
+              : "scale-100 opacity-100"
+        }`}
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_34%_28%,_rgba(255,255,255,0.24)_0%,_transparent_18%),radial-gradient(circle_at_66%_58%,_rgba(255,255,255,0.12)_0%,_transparent_22%)] mix-blend-screen" />
+      <div
+        className={`absolute left-1/2 top-1/2 flex w-[min(94vw,46rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center transition-opacity duration-[720ms] ease-out ${
+          isHidden || isRevealing ? "opacity-0" : "opacity-100"
+        }`}
+      >
+        <h2
+          className={`${mapLabelFont.className} whitespace-nowrap leading-none text-[#1e140f] transition-opacity duration-300 ${
+            isMapFontReady
+              ? "opacity-100 text-[clamp(1.7rem,4.8vw,4rem)] tracking-[0.04em]"
+              : "opacity-0 text-[clamp(1.7rem,4.8vw,4rem)] tracking-[0.04em]"
+          }`}
+          style={MAP_LABEL_TEXT_STYLE}
+        >
+          {label}
+        </h2>
+        <p className="mt-4 text-[11px] tracking-[0.38em] text-[#735844]/58 sm:text-xs">
+          载入中
+        </p>
+        <div className="mt-4 flex items-center gap-2.5">
+          {[0, 1, 2].map((index) => (
+            <span
+              key={index}
+              className="h-2 w-2 rounded-full bg-[#2b1c14]/44 blur-[0.4px] animate-pulse"
+              style={{ animationDelay: `${index * 220}ms` }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OverviewMapFrame({ children }: OverviewMapFrameProps) {
   return (
-    <div className="absolute inset-0 overflow-hidden bg-black">
+    <div className="absolute inset-0 overflow-hidden bg-[#ece2d5]">
       <div
         className="absolute left-1/2 top-1/2"
         style={{
@@ -311,7 +417,7 @@ function OverviewStage({ models, onSelect }: OverviewStageProps) {
   };
 
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-black">
+    <section className="relative h-screen w-full overflow-hidden bg-[#ece2d5]">
       <OverviewMapFrame>
         {models.map((model) => (
           <MapLabel key={model.slug} model={model} onSelect={handleSelect} />
@@ -828,35 +934,179 @@ function SingleModelStage({
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4 sm:bottom-6">
-        <div
-          className={`max-w-xl rounded-full border px-4 py-2 text-center text-sm backdrop-blur-md ${
-            viewerState.kind === "error"
-              ? "border-rose-300/45 bg-rose-50/88 text-rose-900"
-              : "border-[#65513f]/10 bg-[linear-gradient(180deg,_rgba(255,255,252,0.92)_0%,_rgba(247,243,236,0.96)_100%)] text-[#5e4b3a] shadow-[0_14px_32px_rgba(72,51,32,0.12)]"
-          }`}
-        >
-          {viewerState.message}
-        </div>
+        {viewerState.kind === "loading" ? (
+          <div
+            className={`${PAPER_PANEL_CLASS} w-[min(88vw,22rem)] rounded-[1.35rem] px-5 py-3 text-center backdrop-blur-md`}
+          >
+            <p
+              className={`${mapLabelFont.className} text-[1.18rem] leading-none tracking-[0.04em] text-[#2f2118]`}
+            >
+              载入中
+            </p>
+            <p className="mt-1.5 text-[13px] leading-6 text-[#5e4b3a]">
+              {viewerState.message}
+            </p>
+          </div>
+        ) : (
+          <div
+            className={`max-w-xl rounded-full border px-4 py-2 text-center text-sm backdrop-blur-md ${
+              viewerState.kind === "error"
+                ? "border-rose-300/45 bg-rose-50/88 text-rose-900"
+                : "border-[#65513f]/10 bg-[linear-gradient(180deg,_rgba(255,255,252,0.92)_0%,_rgba(247,243,236,0.96)_100%)] text-[#5e4b3a] shadow-[0_14px_32px_rgba(72,51,32,0.12)]"
+            }`}
+          >
+            {viewerState.message}
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
 export default function ModelViewer({ models }: ModelViewerProps) {
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const selectedModel =
-    models.find((model) => model.slug === selectedSlug) ?? null;
+  const [displayedSlug, setDisplayedSlug] = useState<string | null>(null);
+  const [isMapFontReady, setIsMapFontReady] = useState(false);
+  const [transitionPhase, setTransitionPhase] =
+    useState<InkTransitionPhase>("covering");
+  const [transitionKind, setTransitionKind] =
+    useState<InkTransitionKind>("initial");
+  const [transitionLabel, setTransitionLabel] = useState("一园如画·三维见江南");
+  const pendingSlugRef = useRef<string | null>(null);
 
-  if (selectedModel) {
-    return (
-      <SingleModelStage
-        models={models}
-        model={selectedModel}
-        onSelect={setSelectedSlug}
-        onBack={() => setSelectedSlug(null)}
-      />
+  useEffect(() => {
+    if (typeof document === "undefined" || !("fonts" in document)) {
+      const timer = window.setTimeout(() => {
+        setIsMapFontReady(true);
+      }, 0);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    let isCancelled = false;
+
+    if (document.fonts.check('1em "Ma Shan Zheng"')) {
+      const timer = window.setTimeout(() => {
+        if (!isCancelled) {
+          setIsMapFontReady(true);
+        }
+      }, 0);
+
+      return () => {
+        isCancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
+
+    const fallbackTimer = window.setTimeout(() => {
+      if (!isCancelled) {
+        setIsMapFontReady(true);
+      }
+    }, 1400);
+
+    document.fonts
+      .load('1em "Ma Shan Zheng"')
+      .then(() => {
+        if (!isCancelled) {
+          setIsMapFontReady(true);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setIsMapFontReady(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (transitionKind !== "initial") {
+      return;
+    }
+
+    if (transitionPhase === "covering") {
+      const timer = window.setTimeout(() => {
+        setTransitionPhase("revealing");
+      }, INK_TRANSITION_INITIAL_HOLD_MS);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    if (transitionPhase === "revealing") {
+      const timer = window.setTimeout(() => {
+        setTransitionPhase("hidden");
+      }, INK_TRANSITION_REVEAL_MS);
+
+      return () => window.clearTimeout(timer);
+    }
+  }, [transitionKind, transitionPhase]);
+
+  useEffect(() => {
+    if (transitionKind !== "switch") {
+      return;
+    }
+
+    if (transitionPhase === "covering") {
+      const timer = window.setTimeout(() => {
+        const nextSlug = pendingSlugRef.current;
+
+        startTransition(() => {
+          setDisplayedSlug(nextSlug);
+        });
+        setTransitionPhase("revealing");
+      }, INK_TRANSITION_COVER_MS);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    if (transitionPhase === "revealing") {
+      const timer = window.setTimeout(() => {
+        setTransitionPhase("hidden");
+      }, INK_TRANSITION_REVEAL_MS);
+
+      return () => window.clearTimeout(timer);
+    }
+  }, [transitionKind, transitionPhase]);
+
+  const runInkTransition = (nextSlug: string | null) => {
+    if (transitionPhase !== "hidden") {
+      return;
+    }
+
+    pendingSlugRef.current = nextSlug;
+    setTransitionLabel(
+      nextSlug
+        ? models.find((model) => model.slug === nextSlug)?.label ?? "入景"
+        : "园林总览"
     );
-  }
+    setTransitionKind("switch");
+    setTransitionPhase("covering");
+  };
 
-  return <OverviewStage models={models} onSelect={setSelectedSlug} />;
+  const selectedModel =
+    models.find((model) => model.slug === displayedSlug) ?? null;
+
+  return (
+    <div className="relative min-h-screen">
+      {selectedModel ? (
+        <SingleModelStage
+          models={models}
+          model={selectedModel}
+          onSelect={runInkTransition}
+          onBack={() => runInkTransition(null)}
+        />
+      ) : (
+        <OverviewStage models={models} onSelect={runInkTransition} />
+      )}
+
+      <InkWashOverlay
+        phase={transitionPhase}
+        label={transitionLabel}
+        isMapFontReady={isMapFontReady}
+      />
+    </div>
+  );
 }
