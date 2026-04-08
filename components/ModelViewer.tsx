@@ -566,31 +566,42 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
 
   return (
     <section className="relative h-screen w-full overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_#c8d0c1_0%,_#b1bca8_42%,_#87977c_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,_rgba(255,224,159,0.38)_0%,_rgba(255,224,159,0.12)_26%,_transparent_44%),radial-gradient(circle_at_82%_18%,_rgba(135,161,120,0.28)_0%,_transparent_24%),radial-gradient(circle_at_54%_86%,_rgba(213,224,203,0.18)_0%,_transparent_28%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_rgba(255,245,214,0.18)_0%,_rgba(255,245,214,0.08)_20%,_rgba(255,255,255,0)_42%,_rgba(56,74,55,0.14)_100%)]" />
-      <div className="pointer-events-none absolute left-[-10%] top-[6%] h-[38%] w-[42%] rounded-full bg-[radial-gradient(circle,_rgba(255,232,180,0.62)_0%,_rgba(255,232,180,0.16)_48%,_transparent_78%)] blur-3xl" />
-      <div className="pointer-events-none absolute right-[-10%] top-[18%] h-[36%] w-[34%] rounded-full bg-[radial-gradient(circle,_rgba(176,201,162,0.34)_0%,_rgba(176,201,162,0.12)_50%,_transparent_78%)] blur-3xl" />
-      <div className="pointer-events-none absolute inset-x-[10%] bottom-[-14%] h-[42%] rounded-full bg-[radial-gradient(circle,_rgba(208,219,200,0.24)_0%,_rgba(208,219,200,0.1)_36%,_transparent_74%)] blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_#fffefb_0%,_#f7f3ec_46%,_#ece2d5_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_14%,_rgba(255,255,255,0.72)_0%,_rgba(255,255,255,0.18)_26%,_transparent_48%),radial-gradient(circle_at_82%_18%,_rgba(244,234,218,0.36)_0%,_transparent_28%),radial-gradient(circle_at_54%_86%,_rgba(232,214,189,0.18)_0%,_transparent_34%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_rgba(255,255,255,0.24)_0%,_rgba(255,255,255,0.08)_22%,_rgba(255,255,255,0)_44%,_rgba(142,111,79,0.08)_100%)]" />
+      <div className="pointer-events-none absolute left-[-10%] top-[6%] h-[38%] w-[42%] rounded-full bg-[radial-gradient(circle,_rgba(255,255,255,0.72)_0%,_rgba(255,255,255,0.18)_48%,_transparent_78%)] blur-3xl" />
+      <div className="pointer-events-none absolute right-[-10%] top-[18%] h-[36%] w-[34%] rounded-full bg-[radial-gradient(circle,_rgba(245,233,216,0.36)_0%,_rgba(245,233,216,0.12)_50%,_transparent_78%)] blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-[10%] bottom-[-14%] h-[42%] rounded-full bg-[radial-gradient(circle,_rgba(233,217,198,0.24)_0%,_rgba(233,217,198,0.1)_36%,_transparent_74%)] blur-3xl" />
 
       <div
         ref={containerRef}
         className="absolute inset-0 cursor-grab active:cursor-grabbing"
       />
 
-      <div className="absolute left-4 right-4 top-4 flex flex-col gap-4 sm:left-6 sm:right-6 sm:top-6">
-        <div className="flex flex-col gap-3 sm:max-w-[18rem]">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="返回总览"
-            className={`${PAPER_BUTTON_CLASS} w-fit rounded-full px-3 py-1.5 text-sm font-medium backdrop-blur-md transition hover:border-[#4d3b2d]/20 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)]`}
-          >
-            返回
-          </button>
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label="返回总览"
+        className={`${PAPER_BUTTON_CLASS} absolute left-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full backdrop-blur-md transition hover:border-[#4d3b2d]/20 hover:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98)_0%,_rgba(250,246,240,1)_100%)] sm:left-6 sm:h-12 sm:w-12`}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          className="h-4 w-4 text-[#5a4839] sm:h-[18px] sm:w-[18px]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
 
+      <div className="absolute left-4 right-4 top-4 flex flex-col gap-4 sm:left-6 sm:right-6 sm:top-6">
+        <div className="sm:max-w-[18rem]">
           <div
-            className={`${PAPER_PANEL_CLASS} pointer-events-none rounded-[1.5rem] px-3.5 py-3 backdrop-blur-xl sm:px-4 sm:py-3.5`}
+            className={`${PAPER_PANEL_CLASS} pointer-events-none rounded-[1.5rem] px-3.5 py-4 backdrop-blur-xl sm:px-4 sm:py-4`}
           >
             <p className="text-xs font-medium uppercase tracking-[0.32em] text-[#7b6450]/72">
               园林光景
@@ -609,8 +620,8 @@ function SingleModelStage({ model, onBack }: SingleModelStageProps) {
         <div
           className={`max-w-xl rounded-full border px-4 py-2 text-center text-sm backdrop-blur-md ${
             viewerState.kind === "error"
-              ? "border-rose-300/45 bg-rose-100/80 text-rose-900"
-              : "border-white/16 bg-[#1b281e]/40 text-slate-100"
+              ? "border-rose-300/45 bg-rose-50/88 text-rose-900"
+              : "border-[#65513f]/10 bg-[linear-gradient(180deg,_rgba(255,255,252,0.92)_0%,_rgba(247,243,236,0.96)_100%)] text-[#5e4b3a] shadow-[0_14px_32px_rgba(72,51,32,0.12)]"
           }`}
         >
           {viewerState.message}
